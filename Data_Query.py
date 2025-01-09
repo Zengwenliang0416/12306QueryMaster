@@ -529,12 +529,18 @@ def main():
     # 创建查询对象
     query = TrainQuery(show_logs=True)
 
-    # 设置查询参数
+    # # 设置查询参数
     from_station = input("请输入出发站（例如：北京）：").strip()
     to_station = input("请输入到达站（例如：天津）：").strip()
     train_date = input("请输入出发日期（格式：YYYY-MM-DD，直接回车默认明天）：").strip()
     start_time = input("请输入起始时间（格式：HH:MM，例如：08:00，直接回车表示不限制）：").strip()
     end_time = input("请输入结束时间（格式：HH:MM，例如：18:00，直接回车表示不限制）：").strip()
+    # 设置查询参数
+    # from_station = "北京"
+    # to_station = "上海"
+    # train_date = "2024-01-22"
+    # start_time = "08:00"
+    # end_time = "18:00"
 
     # 如果用户未输入日期，使用明天的日期
     if not train_date:
