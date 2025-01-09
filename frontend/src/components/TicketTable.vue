@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, watchEffect } from 'vue'
+import { watchEffect } from 'vue'
 import SeatColumn from './SeatColumn.vue'
 
 const props = defineProps({
