@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict
-from ..schemas.train import TicketQuery, TrainInfo
+from ..schemas.train import TicketQuery, TrainInfo, TrainStop
 from ..services.train_service import TrainService
 
 router = APIRouter()
@@ -55,4 +55,22 @@ async def search_stations(station_name: str):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to search stations: {str(e)}"
+        )
+
+@router.get("/trains/{train_code}/stops", response_model=List[TrainStop])
+async def get_train_stops(train_code: str, train_date: str = None):
+    """获取列车经停站信息"""
+    try:
+        # 从文件中读取经停站信息
+        stops = train_service.get_train_stops_from_file(train_code, train_date)
+        if not stops:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Train stops not found for train {train_code}"
+            )
+        return stops
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get train stops: {str(e)}"
         ) 

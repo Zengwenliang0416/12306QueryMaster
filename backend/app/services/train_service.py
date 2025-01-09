@@ -92,7 +92,7 @@ class TrainService:
         else:
             return "其他"
 
-    def get_train_stops(self, train_no: str, from_station: str, to_station: str, train_date: str) -> List[str]:
+    def get_train_stops(self, train_no: str, from_station: str, to_station: str, train_date: str) -> List[Dict]:
         """获取列车经停站信息"""
         logger.info(f"正在获取列车 {train_no} 的经停站信息...")
         try:
@@ -119,18 +119,80 @@ class TrainService:
             # 解析响应
             result = response.json()
             if result.get('status') and result.get('data', {}).get('data'):
-                stations = []
-                for station in result['data']['data']:
-                    station_name = station.get('station_name', '')
-                    if station_name:
-                        stations.append(station_name)
-                logger.info(f"成功获取到 {len(stations)} 个经停站")
-                return stations
+                stops = []
+                station_list = result['data']['data']
+                total_stations = len(station_list)
+
+                for i, station in enumerate(station_list):
+                    is_first = i == 0
+                    is_last = i == total_stations - 1
+                    
+                    stop = {
+                        'station_name': station.get('station_name', ''),
+                        'arrival_time': '--' if is_first else station.get('arrive_time', '--'),
+                        'departure_time': '--' if is_last else station.get('start_time', '--'),
+                        'stopover_time': '--' if is_first or is_last else station.get('stopover_time', '--')
+                    }
+                    stops.append(stop)
+                    
+                logger.info(f"成功获取到 {len(stops)} 个经停站")
+                return stops
             logger.warning("未获取到经停站信息")
             return []
 
         except Exception as e:
             logger.error(f"获取经停站信息失败: {str(e)}")
+            return []
+
+    def get_train_stops_from_file(self, train_code: str, train_date: str = None) -> List[TrainStop]:
+        """获取列车经停站信息"""
+        try:
+            # 查找最近一次查询中的车次信息
+            file_path = os.path.join(self.data_dir, 'train_stops.txt')
+            if not os.path.exists(file_path):
+                logger.warning(f"Train stops file not found: {file_path}")
+                return []
+
+            train_info = None
+            train_no = None
+            from_station_code = None
+            to_station_code = None
+
+            with open(file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                # 获取查询日期
+                if lines and lines[0].startswith("查询日期:"):
+                    saved_date = lines[0].strip().split(": ")[1]
+                    train_date = train_date or saved_date
+
+                # 查找车次信息和车次号
+                for line in lines:
+                    if line.startswith("TRAIN|"):
+                        fields = line.strip().split("|")
+                        if len(fields) >= 4 and fields[2] == train_code:
+                            train_no = fields[1]
+                            from_station_code = fields[3]
+                            to_station_code = fields[4]
+                            break
+
+            if train_no and from_station_code and to_station_code and train_date:
+                logger.info(f"找到车次信息: {train_code}, train_no: {train_no}, "
+                          f"from: {from_station_code}, to: {to_station_code}, date: {train_date}")
+                # 使用12306 API获取完整的经停站信息
+                stops = self.get_train_stops(train_no, from_station_code, to_station_code, train_date)
+                if stops:
+                    return [TrainStop(
+                        station_name=stop['station_name'],
+                        arrival_time=stop['arrival_time'],
+                        departure_time=stop['departure_time'],
+                        stopover_time=stop['stopover_time']
+                    ) for stop in stops]
+
+            logger.warning(f"No stops found for train {train_code}")
+            return []
+
+        except Exception as e:
+            logger.error(f"Failed to get train stops: {str(e)}")
             return []
 
     def save_train_stops(self, train_info_list: List[TrainInfo], train_date: str, 
@@ -157,41 +219,20 @@ class TrainService:
                 f.write(f"查询日期: {train_date}\n")
                 if via_station:
                     f.write(f"经停站点: {via_station}\n")
-                f.write("=" * 50 + "\n\n")
+                f.write("=" * 50 + "\n")
                 
+                # 保存原始查询结果
                 for info in train_info_list:
-                    train_no = info.train_no
-                    train_code = info.train_code
-                    from_station = info.from_station.station_name
-                    to_station = info.to_station.station_name
+                    # 保存原始查询结果，包含所有必要信息
+                    f.write(f"TRAIN|{info.train_no}|{info.train_code}|"
+                           f"{self.get_station_code(info.from_station.station_name)}|"
+                           f"{self.get_station_code(info.to_station.station_name)}|"
+                           f"{info.from_station.station_name}|{info.to_station.station_name}|"
+                           f"{info.from_station.departure_time}|{info.to_station.arrival_time}\n")
 
-                    if train_no and train_code:
-                        # 获取经停站信息
-                        stops = self.get_train_stops(
-                            train_no,
-                            self.get_station_code(from_station),
-                            self.get_station_code(to_station),
-                            train_date
-                        )
-                        
-                        # 如果指定了经停站点，检查是否包含该站点
-                        if stops:
-                            if via_station:
-                                if via_station in stops:
-                                    # 写入格式：车次号：起点-经停1-经停2...-终点
-                                    f.write(f"{train_code}：{'-'.join(stops)}\n")
-                                    logger.info(f"已保存包含经停站{via_station}的车次{train_code}的信息")
-                            else:
-                                # 未指定经停站点，保存所有车次
-                                f.write(f"{train_code}：{'-'.join(stops)}\n")
-                                logger.info(f"已保存{train_code}的经停站信息")
-                        
-                        # 随机延时1-2秒，避免请求过于频繁
-                        time.sleep(random.uniform(1, 2))
-
-            logger.info(f"所有经停站信息已保存到 {file_path}")
+            logger.info(f"所有列车信息已保存到 {file_path}")
         except Exception as e:
-            logger.error(f"保存经停站信息时出错: {str(e)}")
+            logger.error(f"保存列车信息时出错: {str(e)}")
             raise
 
     def query_tickets(self, from_station: str, to_station: str, train_date: str, 
