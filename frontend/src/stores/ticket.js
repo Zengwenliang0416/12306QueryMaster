@@ -98,7 +98,28 @@ export const useTicketStore = defineStore('ticket', () => {
         end_time: searchForm.endTime,
         via_station: searchForm.viaStation || undefined
       })
-      tickets.value = response.data
+
+      // 如果指定了经停站，需要验证每个车次是否经过该站
+      if (searchForm.viaStation) {
+        const viaStationPromises = response.data.map(async (train) => {
+          try {
+            const stopsResponse = await axios.get(
+              `${API_BASE_URL}/trains/${train.train_code}/stops?train_date=${dayjs(searchForm.trainDate).format('YYYY-MM-DD')}`
+            )
+            // 检查经停站是否在该车次的停靠站列表中
+            return stopsResponse.data.some(stop => stop.station_name === searchForm.viaStation)
+          } catch (error) {
+            console.error(`Error checking stops for train ${train.train_code}:`, error)
+            return false
+          }
+        })
+
+        const viaStationResults = await Promise.all(viaStationPromises)
+        tickets.value = response.data.filter((_, index) => viaStationResults[index])
+      } else {
+        tickets.value = response.data
+      }
+
       if (tickets.value.length === 0) {
         ElMessage.info('未找到符合条件的车次')
       }
