@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from typing import List, Dict
 from ..schemas.train import TicketQuery, TrainInfo
 from ..services.train_service import TrainService
 
@@ -45,19 +45,14 @@ async def query_tickets(query: TicketQuery):
             detail=f"Failed to query tickets: {str(e)}"
         )
 
-@router.get("/stations/{station_name}")
-async def get_station_code(station_name: str):
+@router.get("/stations/{station_name}", response_model=List[Dict[str, str]])
+async def search_stations(station_name: str):
+    """搜索站点，支持模糊匹配"""
     try:
-        code = train_service.get_station_code(station_name)
-        if not code:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Station '{station_name}' not found"
-            )
-        return {"station_name": station_name, "code": code}
-
+        stations = train_service.search_stations(station_name)
+        return stations
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to get station code: {str(e)}"
+            detail=f"Failed to search stations: {str(e)}"
         ) 

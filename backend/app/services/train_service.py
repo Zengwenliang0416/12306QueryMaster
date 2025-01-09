@@ -17,6 +17,7 @@ class TrainService:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
         self.station_map = {}  # 存储站点代码到名称的映射
+        self.name_to_code_map = {}  # 存储站点名称到代码的映射
         # 设置基础目录为当前文件所在目录的父级目录
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         # 创建保存文件的目录
@@ -34,7 +35,7 @@ class TrainService:
             raise
 
     def _init_station_map(self):
-        """初始化站点代码到名称的映射"""
+        """初始化站点映射"""
         try:
             response = self.session.get(
                 'https://kyfw.12306.cn/otn/resources/js/framework/station_name.js'
@@ -47,6 +48,7 @@ class TrainService:
                         name = info[1]
                         code = info[2]
                         self.station_map[code] = name
+                        self.name_to_code_map[name] = code
                 logger.info(f"Loaded {len(self.station_map)} station mappings")
         except Exception as e:
             logger.error(f"Failed to initialize station map: {str(e)}")
@@ -56,16 +58,21 @@ class TrainService:
         return self.station_map.get(code)
 
     def get_station_code(self, station_name: str) -> Optional[str]:
+        """根据站点名称获取站点代码"""
+        if not station_name:
+            return None
+            
+        # 先从缓存中查找精确匹配
+        code = self.name_to_code_map.get(station_name)
+        if code:
+            return code
+
+        # 如果没找到，尝试模糊匹配
         try:
-            response = self.session.get(
-                'https://kyfw.12306.cn/otn/resources/js/framework/station_name.js'
-            )
-            if response.status_code == 200:
-                station_data = response.text.split('@')[1:]
-                for station in station_data:
-                    info = station.split('|')
-                    if info[1] == station_name:
-                        return info[2]
+            matches = self.search_stations(station_name)
+            if matches:
+                # 返回最匹配的结果
+                return matches[0]["code"]
             return None
         except Exception as e:
             logger.error(f"Failed to get station code: {str(e)}")
@@ -311,3 +318,38 @@ class TrainService:
         except Exception as e:
             logger.error(f"解析车次信息失败: {str(e)}")
             return None 
+
+    def search_stations(self, keyword: str) -> List[Dict[str, str]]:
+        """搜索站点，支持模糊匹配"""
+        try:
+            if not keyword:
+                return []
+
+            # 使用缓存的站点数据进行搜索
+            matches = []
+            for name, code in self.name_to_code_map.items():
+                if keyword.upper() in name.upper():  # 不区分大小写
+                    matches.append({
+                        "name": name,
+                        "code": code
+                    })
+                    if len(matches) >= 10:  # 限制返回数量
+                        break
+
+            # 如果没有找到匹配项，尝试重新加载站点数据
+            if not matches:
+                self._init_station_map()
+                for name, code in self.name_to_code_map.items():
+                    if keyword.upper() in name.upper():
+                        matches.append({
+                            "name": name,
+                            "code": code
+                        })
+                        if len(matches) >= 10:
+                            break
+
+            return matches
+
+        except Exception as e:
+            logger.error(f"Failed to search stations: {str(e)}")
+            return [] 
