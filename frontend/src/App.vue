@@ -1,12 +1,12 @@
 <template>
   <div class="container">
-    <el-container>
+    <el-container class="main-container">
       <el-header>
         <h1>12306 列车查询系统</h1>
       </el-header>
       
       <el-main>
-        <el-form :model="searchForm" label-width="120px">
+        <el-form :model="searchForm" label-width="120px" class="search-form">
           <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item label="出发站">
@@ -106,52 +106,89 @@
           stripe
           highlight-current-row
           v-loading="loading"
+          max-height="calc(100vh - 400px)"
         >
-          <el-table-column prop="train_code" label="车次" width="100" align="center" />
-          <el-table-column label="出发站" width="120" align="center">
+          <el-table-column prop="train_code" label="车次" min-width="80" align="center" />
+          <el-table-column label="出发站" min-width="100" align="center">
             <template #default="scope">
               {{ scope.row.from_station.station_name }}
             </template>
           </el-table-column>
-          <el-table-column label="到达站" width="120" align="center">
+          <el-table-column label="到达站" min-width="100" align="center">
             <template #default="scope">
               {{ scope.row.to_station.station_name }}
             </template>
           </el-table-column>
-          <el-table-column label="出发时间" width="180" align="center">
+          <el-table-column label="出发时间" min-width="150" align="center">
             <template #default="scope">
               <div>{{ scope.row.from_station.departure_time }}</div>
               <div class="text-gray">{{ scope.row.from_station.station_name }}</div>
             </template>
           </el-table-column>
-          <el-table-column label="到达时间" width="180" align="center">
+          <el-table-column label="到达时间" min-width="150" align="center">
             <template #default="scope">
               <div>{{ scope.row.to_station.arrival_time }}</div>
               <div class="text-gray">{{ scope.row.to_station.station_name }}</div>
             </template>
           </el-table-column>
-          <el-table-column prop="duration" label="历时" width="100" align="center" />
-          <el-table-column label="票价" width="120" align="center">
+          <el-table-column prop="duration" label="历时" min-width="80" align="center" />
+          <el-table-column label="商务座" min-width="90" align="center">
             <template #default="scope">
-              <div v-if="scope.row.prices">
-                <div v-for="(price, type) in scope.row.prices" :key="type">
-                  {{ type }}: ¥{{ price }}
-                </div>
+              <div>
+                <div>{{ scope.row.seats?.商务座 || '--' }}</div>
+                <div class="price-tag" v-if="scope.row.prices?.商务座">¥{{ scope.row.prices.商务座 }}</div>
               </div>
-              <div v-else>--</div>
             </template>
           </el-table-column>
-          <el-table-column label="座位" width="120" align="center">
+          <el-table-column label="一等座" min-width="90" align="center">
             <template #default="scope">
-              <div v-if="scope.row.seats">
-                <div v-for="(count, type) in scope.row.seats" :key="type">
-                  {{ type }}: {{ count }}
-                </div>
+              <div>
+                <div>{{ scope.row.seats?.一等座 || '--' }}</div>
+                <div class="price-tag" v-if="scope.row.prices?.一等座">¥{{ scope.row.prices.一等座 }}</div>
               </div>
-              <div v-else>--</div>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
+          <el-table-column label="二等座" min-width="90" align="center">
+            <template #default="scope">
+              <div>
+                <div>{{ scope.row.seats?.二等座 || '--' }}</div>
+                <div class="price-tag" v-if="scope.row.prices?.二等座">¥{{ scope.row.prices.二等座 }}</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="软卧" min-width="90" align="center">
+            <template #default="scope">
+              <div>
+                <div>{{ scope.row.seats?.软卧 || '--' }}</div>
+                <div class="price-tag" v-if="scope.row.prices?.软卧">¥{{ scope.row.prices.软卧 }}</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="硬卧" min-width="90" align="center">
+            <template #default="scope">
+              <div>
+                <div>{{ scope.row.seats?.硬卧 || '--' }}</div>
+                <div class="price-tag" v-if="scope.row.prices?.硬卧">¥{{ scope.row.prices.硬卧 }}</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="硬座" min-width="90" align="center">
+            <template #default="scope">
+              <div>
+                <div>{{ scope.row.seats?.硬座 || '--' }}</div>
+                <div class="price-tag" v-if="scope.row.prices?.硬座">¥{{ scope.row.prices.硬座 }}</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="无座" min-width="90" align="center">
+            <template #default="scope">
+              <div>
+                <div>{{ scope.row.seats?.无座 || '--' }}</div>
+                <div class="price-tag" v-if="scope.row.prices?.无座">¥{{ scope.row.prices.无座 }}</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" min-width="90" align="center" fixed="right">
             <template #default="scope">
               <el-button
                 type="primary"
@@ -323,27 +360,47 @@ async function showTrainStops(trainCode) {
 
 <style scoped>
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100%;
+  min-height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
+.main-container {
+  height: 100vh;
 }
 
 .el-header {
   text-align: center;
   line-height: 60px;
   background-color: #f5f7fa;
+  padding: 0;
+  height: 60px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .el-main {
   padding: 20px;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
 }
 
-.el-form {
+.search-form {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
 
 .text-gray {
   color: #909399;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.price-tag {
+  color: #F56C6C;
   font-size: 12px;
   margin-top: 4px;
 }
@@ -356,6 +413,7 @@ async function showTrainStops(trainCode) {
 
 :deep(.el-table th) {
   background-color: #f5f7fa !important;
+  height: 50px;
 }
 
 :deep(.el-table td) {
@@ -364,5 +422,9 @@ async function showTrainStops(trainCode) {
 
 :deep(.el-button--small) {
   padding: 6px 12px;
+}
+
+:deep(.el-table .cell) {
+  white-space: nowrap;
 }
 </style>

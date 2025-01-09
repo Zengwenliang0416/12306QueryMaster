@@ -276,14 +276,20 @@ class TrainService:
             )
 
             seats = {
-                "business_seat": fields[32] or "--",
-                "first_class": fields[31] or "--",
-                "second_class": fields[30] or "--",
-                "soft_sleeper": fields[23] or "--",
-                "hard_sleeper": fields[28] or "--",
-                "hard_seat": fields[29] or "--",
-                "no_seat": fields[26] or "--"
+                "商务座": fields[32] or "--",
+                "一等座": fields[31] or "--",
+                "二等座": fields[30] or "--",
+                "软卧": fields[23] or "--",
+                "硬卧": fields[28] or "--",
+                "硬座": fields[29] or "--",
+                "无座": fields[26] or "--"
             }
+
+            # 添加座位信息日志
+            logger.info(f"车次 {train_code} 的座位信息:")
+            for seat_type, count in seats.items():
+                if count != "--":
+                    logger.info(f"  {seat_type}: {count}")
 
             # Prices would be fetched from another API endpoint
             prices = {}
