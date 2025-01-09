@@ -30,7 +30,8 @@ async def query_tickets(query: TicketQuery):
             query.train_date,
             start_time=start_time,
             end_time=end_time,
-            train_types=query.train_types
+            train_types=query.train_types,
+            via_station=query.via_station
         )
 
         if not trains:

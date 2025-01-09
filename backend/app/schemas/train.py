@@ -1,6 +1,22 @@
 from pydantic import BaseModel
-from typing import Optional, List, Literal
-from datetime import datetime, time
+from typing import List, Optional, Dict
+from datetime import time
+
+class TrainStop(BaseModel):
+    station_name: str
+    arrival_time: Optional[str] = None
+    departure_time: Optional[str] = None
+    stopover_time: Optional[str] = None
+
+class TrainInfo(BaseModel):
+    train_no: str
+    train_code: str
+    train_type: str
+    from_station: TrainStop
+    to_station: TrainStop
+    duration: str
+    seats: Dict[str, str]
+    prices: Dict[str, float]
 
 class TicketQuery(BaseModel):
     from_station: str
@@ -9,33 +25,5 @@ class TicketQuery(BaseModel):
     purpose_codes: str = "ADULT"
     start_time: Optional[time] = None
     end_time: Optional[time] = None
-    train_types: Optional[List[str]] = None  # ["G", "D", "Z", "T", "K"]
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "from_station": "BJP",
-                "to_station": "SHH",
-                "train_date": "2024-01-10",
-                "purpose_codes": "ADULT",
-                "start_time": "00:00:00",
-                "end_time": "23:59:59",
-                "train_types": ["G", "D"]
-            }
-        }
-
-class TrainStop(BaseModel):
-    station_name: str
-    arrival_time: Optional[str]
-    departure_time: Optional[str]
-    stopover_time: Optional[str]
-
-class TrainInfo(BaseModel):
-    train_no: str
-    train_code: str
-    train_type: str  # "高铁", "动车", "普通列车"
-    from_station: TrainStop
-    to_station: TrainStop
-    duration: str
-    seats: dict
-    prices: dict 
+    train_types: Optional[List[str]] = None
+    via_station: Optional[str] = None  # 新增：经停站点参数 

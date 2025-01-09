@@ -126,8 +126,16 @@ class TrainService:
             logger.error(f"获取经停站信息失败: {str(e)}")
             return []
 
-    def save_train_stops(self, train_info_list: List[TrainInfo], train_date: str, filename: str = 'train_stops.txt'):
-        """保存列车经停站信息到文件"""
+    def save_train_stops(self, train_info_list: List[TrainInfo], train_date: str, 
+                     via_station: str = None, filename: str = 'train_stops.txt'):
+        """
+        保存列车经停站信息到文件
+        Args:
+            train_info_list: 列车信息列表
+            train_date: 查询日期
+            via_station: 经停站点（可选），如果指定，只保存包含该站点的车次
+            filename: 保存的文件名
+        """
         if not train_info_list:
             logger.warning("没有可保存的车次信息")
             return
@@ -140,6 +148,8 @@ class TrainService:
             with open(file_path, 'w', encoding='utf-8') as f:
                 # 写入查询信息
                 f.write(f"查询日期: {train_date}\n")
+                if via_station:
+                    f.write(f"经停站点: {via_station}\n")
                 f.write("=" * 50 + "\n\n")
                 
                 for info in train_info_list:
@@ -157,10 +167,17 @@ class TrainService:
                             train_date
                         )
                         
+                        # 如果指定了经停站点，检查是否包含该站点
                         if stops:
-                            # 写入格式：车次号：起点-经停1-经停2...-终点
-                            f.write(f"{train_code}：{'-'.join(stops)}\n")
-                            logger.info(f"已保存{train_code}的经停站信息")
+                            if via_station:
+                                if via_station in stops:
+                                    # 写入格式：车次号：起点-经停1-经停2...-终点
+                                    f.write(f"{train_code}：{'-'.join(stops)}\n")
+                                    logger.info(f"已保存包含经停站{via_station}的车次{train_code}的信息")
+                            else:
+                                # 未指定经停站点，保存所有车次
+                                f.write(f"{train_code}：{'-'.join(stops)}\n")
+                                logger.info(f"已保存{train_code}的经停站信息")
                         
                         # 随机延时1-2秒，避免请求过于频繁
                         time.sleep(random.uniform(1, 2))
@@ -172,13 +189,15 @@ class TrainService:
 
     def query_tickets(self, from_station: str, to_station: str, train_date: str, 
                      start_time: str = None, end_time: str = None,
-                     train_types: List[str] = None) -> List[TrainInfo]:
+                     train_types: List[str] = None, via_station: str = None) -> List[TrainInfo]:
         try:
             logger.info(f"开始查询车票信息: {from_station} -> {to_station}, 日期: {train_date}")
             if start_time or end_time:
                 logger.info(f"时间范围: {start_time or '不限'} - {end_time or '不限'}")
             if train_types:
                 logger.info(f"车型过滤: {', '.join(train_types)}")
+            if via_station:
+                logger.info(f"经停站点: {via_station}")
 
             url = f'https://kyfw.12306.cn/otn/leftTicket/queryZ?leftTicketDTO.train_date={train_date}&leftTicketDTO.from_station={from_station}&leftTicketDTO.to_station={to_station}&purpose_codes=ADULT'
             response = self.session.get(url)
@@ -223,7 +242,7 @@ class TrainService:
             
             # 获取并保存经停站信息
             logger.info("开始获取经停站信息...")
-            self.save_train_stops(trains, train_date)
+            self.save_train_stops(trains, train_date, via_station)
 
             return trains
 

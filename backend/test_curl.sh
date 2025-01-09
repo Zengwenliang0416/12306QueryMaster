@@ -63,18 +63,31 @@ curl -X GET "${BASE_URL}/stations/上海" | eval "$PRETTY_PRINT"
 #     "train_types": ["D", "Z", "T", "K"]
 #   }' | eval "$PRETTY_PRINT"
 
-echo -e "\n测试6: 查询早上6点到12点的高铁"
+# echo -e "\n测试6: 查询早上6点到12点的高铁"
+# curl -X POST "${BASE_URL}/tickets/query" \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "from_station": "北京",
+#     "to_station": "上海",
+#     "train_date": "'$QUERY_DATE'",
+#     "purpose_codes": "ADULT",
+#     "start_time": "07:00:00",
+#     "end_time": "08:00:00",
+#     "train_types": ["G"]
+#   }' | eval "$PRETTY_PRINT"
+
+echo -e "\n测试7: 查询经过南京的所有车次"
 curl -X POST "${BASE_URL}/tickets/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "from_station": "北京",
-    "to_station": "上海",
-    "train_date": "'$QUERY_DATE'",
-    "purpose_codes": "ADULT",
-    "start_time": "07:00:00",
-    "end_time": "08:00:00",
-    "train_types": ["G"]
-  }' | eval "$PRETTY_PRINT"
+-H "Content-Type: application/json" \
+-d '{
+"from_station": "北京",
+"to_station": "上海",
+"train_date": "'$QUERY_DATE'",
+"purpose_codes": "ADULT",
+"start_time": "07:00:00",
+"end_time": "08:00:00",
+"via_station": "昆山南"
+}' | eval "$PRETTY_PRINT"
 
 # echo -e "\n测试7: 查询下午2点到晚上8点的动车"
 # curl -X POST "${BASE_URL}/tickets/query" \
