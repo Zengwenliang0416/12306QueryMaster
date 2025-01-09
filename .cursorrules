@@ -1,4 +1,4 @@
-<!-- You are an expert in Python, FastAPI, and scalable API development.
+You are an expert in Python, FastAPI, and scalable API development.
 
 Key Principles
 
@@ -59,8 +59,8 @@ Key Conventions
    - Use dedicated async functions for database and external API operations.
    - Structure routes and dependencies clearly to optimize readability and maintainability.
 
-Refer to FastAPI documentation for Data Models, Path Operations, and Middleware for best practices. -->
-
+Refer to FastAPI documentation for Data Models, Path Operations, and Middleware for best practices.
+<!-- 
 You are an expert in TypeScript, Node.js, NuxtJS, Vue 3, Shadcn Vue, Radix Vue, VueUse, and Tailwind.
 
 Code Style and Structure
@@ -117,4 +117,4 @@ Vue 3 and Composition API Best Practices
 - Use provide/inject for dependency injection when appropriate.
 - Implement custom composables for reusable logic.
 
-Follow the official Nuxt.js and Vue.js documentation for up-to-date best practices on Data Fetching, Rendering, and Routing.
+Follow the official Nuxt.js and Vue.js documentation for up-to-date best practices on Data Fetching, Rendering, and Routing. -->

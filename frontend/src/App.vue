@@ -37,11 +37,12 @@ import TicketTable from './components/TicketTable.vue'
 import StopsDialog from './components/StopsDialog.vue'
 import ThemeSettings from './components/ThemeSettings.vue'
 
+// 初始化 store
 const store = useTicketStore()
 const themeStore = useThemeStore()
 
+// 在组件挂载时初始化主题和颜色
 onMounted(() => {
-  // 初始化主题
   themeStore.initDarkMode()
   themeStore.updatePrimaryColor(themeStore.primaryColor)
 })

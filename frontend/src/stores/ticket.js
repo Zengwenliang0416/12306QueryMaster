@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
@@ -37,15 +37,33 @@ export const useTicketStore = defineStore('ticket', () => {
         }
       })
     }
+
+    // 恢复其他状态
+    const savedTickets = localStorage.getItem('tickets')
+    if (savedTickets) {
+      tickets.value = JSON.parse(savedTickets)
+    }
   }
 
-  // 保存状态到 localStorage
-  function saveToStorage() {
-    localStorage.setItem('ticketSearchForm', JSON.stringify({
+  // 监听状态变化并保存
+  watch(
+    () => ({
       ...searchForm,
       trainDate: searchForm.trainDate ? dayjs(searchForm.trainDate).format('YYYY-MM-DD') : ''
-    }))
-  }
+    }),
+    (newValue) => {
+      localStorage.setItem('ticketSearchForm', JSON.stringify(newValue))
+    },
+    { deep: true }
+  )
+
+  watch(
+    tickets,
+    (newValue) => {
+      localStorage.setItem('tickets', JSON.stringify(newValue))
+    },
+    { deep: true }
+  )
 
   // 站点查询建议
   async function queryStations(query) {
@@ -100,10 +118,6 @@ export const useTicketStore = defineStore('ticket', () => {
         include_stops: true
       })
 
-      console.log('API Response:', response.data)
-      console.log('Response type:', typeof response.data)
-      console.log('Is array:', Array.isArray(response.data))
-      
       if (Array.isArray(response.data)) {
         tickets.value = response.data.map(ticket => ({
           ...ticket,
@@ -118,14 +132,9 @@ export const useTicketStore = defineStore('ticket', () => {
         tickets.value = []
       }
       
-      console.log('Tickets after processing:', tickets.value)
-      console.log('Tickets length:', tickets.value.length)
-      
       if (tickets.value.length === 0) {
         ElMessage.info('未找到符合条件的车次')
       }
-      // 保存表单状态
-      saveToStorage()
     } catch (error) {
       console.error('Error searching tickets:', error)
       ElMessage.error('查询失败：' + (error.response?.data?.detail || error.message))
@@ -142,8 +151,9 @@ export const useTicketStore = defineStore('ticket', () => {
     })
     tickets.value = []
     loadingStops.value = {}
-    // 清除存储的表单状态
+    // 清除存储的状态
     localStorage.removeItem('ticketSearchForm')
+    localStorage.removeItem('tickets')
   }
 
   // 查看经停站信息
@@ -173,6 +183,9 @@ export const useTicketStore = defineStore('ticket', () => {
     }
   }
 
+  // 初始化状态
+  initializeFromStorage()
+
   return {
     searchForm,
     tickets,
@@ -180,7 +193,6 @@ export const useTicketStore = defineStore('ticket', () => {
     stopsDialogVisible,
     loading,
     loadingStops,
-    initializeFromStorage,
     queryStations,
     searchTickets,
     resetForm,
