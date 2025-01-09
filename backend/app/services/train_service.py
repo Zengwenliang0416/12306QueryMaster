@@ -6,6 +6,9 @@ import time
 import os
 import random
 from ..schemas.train import TrainInfo, TrainStop
+import asyncio
+import aiohttp
+from concurrent.futures import ThreadPoolExecutor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +28,24 @@ class TrainService:
         os.makedirs(self.data_dir, exist_ok=True)
         self._init_session()
         self._init_station_map()
+        
+        # 设置连接池
+        self.conn = aiohttp.TCPConnector(
+            limit=10,  # 限制并发连接数
+            ttl_dns_cache=300,  # DNS 缓存时间
+            enable_cleanup_closed=True  # 自动清理关闭的连接
+        )
+        
+        # 创建异步会话
+        self.async_session = None
+        
+        # 设置基础请求头
+        self.base_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Referer': 'https://kyfw.12306.cn/otn/leftTicket/init',
+            'Accept': '*/*',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
 
     def _init_session(self):
         try:
@@ -235,68 +256,210 @@ class TrainService:
             logger.error(f"保存列车信息时出错: {str(e)}")
             raise
 
-    def query_tickets(self, from_station: str, to_station: str, train_date: str, 
-                     start_time: str = None, end_time: str = None,
-                     train_types: List[str] = None, via_station: str = None) -> List[TrainInfo]:
+    async def _get_async_session(self):
+        """获取或创建异步会话"""
         try:
-            logger.info(f"开始查询车票信息: {from_station} -> {to_station}, 日期: {train_date}")
-            if start_time or end_time:
-                logger.info(f"时间范围: {start_time or '不限'} - {end_time or '不限'}")
-            if train_types:
-                logger.info(f"车型过滤: {', '.join(train_types)}")
-            if via_station:
-                logger.info(f"经停站点: {via_station}")
-
-            url = f'https://kyfw.12306.cn/otn/leftTicket/queryZ?leftTicketDTO.train_date={train_date}&leftTicketDTO.from_station={from_station}&leftTicketDTO.to_station={to_station}&purpose_codes=ADULT'
-            response = self.session.get(url)
-            
-            if response.status_code != 200:
-                logger.error(f"查询车票失败: HTTP {response.status_code}")
-                return []
-
-            data = response.json()
-            if 'data' not in data or 'result' not in data['data']:
-                logger.error("返回数据格式无效")
-                return []
-
-            trains = []
-            for train_str in data['data']['result']:
-                try:
-                    train_info = self._parse_train_info(train_str)
-                    if train_info:
-                        # 如果指定了时间范围，进行过滤
-                        departure_time = train_info.from_station.departure_time
-                        if start_time and departure_time < start_time:
-                            logger.debug(f"过滤掉发车时间 {departure_time} 早于 {start_time} 的车次 {train_info.train_code}")
-                            continue
-                        if end_time and departure_time > end_time:
-                            logger.debug(f"过滤掉发车时间 {departure_time} 晚于 {end_time} 的车次 {train_info.train_code}")
-                            continue
-                        
-                        # 如果指定了列车类型，进行过滤
-                        if train_types:
-                            train_first_letter = train_info.train_code[0].upper()
-                            if train_first_letter not in [t.upper() for t in train_types]:
-                                logger.debug(f"过滤掉不符合类型要求的车次 {train_info.train_code}")
-                                continue
-                        
-                        trains.append(train_info)
-                        logger.debug(f"添加符合条件的车次: {train_info.train_code}")
-                except Exception as e:
-                    logger.error(f"解析车次信息失败: {str(e)}")
-                    continue
-
-            logger.info(f"查询完成，共找到 {len(trains)} 个符合条件的车次")
-            
-            # 获取并保存经停站信息
-            logger.info("开始获取经停站信息...")
-            self.save_train_stops(trains, train_date, via_station)
-
-            return trains
-
+            if self.async_session is None or self.async_session.closed:
+                self.async_session = aiohttp.ClientSession(
+                    connector=self.conn,
+                    headers=self.base_headers,
+                    timeout=aiohttp.ClientTimeout(total=30),
+                    connector_owner=False  # 不自动关闭连接器
+                )
+            return self.async_session
         except Exception as e:
-            logger.error(f"查询车票失败: {str(e)}")
+            logger.error(f"创建异步会话失败: {str(e)}")
+            # 如果创建失败，确保清理旧会话
+            if self.async_session and not self.async_session.closed:
+                await self.async_session.close()
+            self.async_session = None
+            raise
+
+    async def _async_get_train_stops(self, session: aiohttp.ClientSession, train_no: str, 
+                                   from_station: str, to_station: str, train_date: str) -> List[Dict]:
+        """异步获取列车经停站信息"""
+        try:
+            url = 'https://kyfw.12306.cn/otn/czxx/queryByTrainNo'
+            params = {
+                'train_no': train_no,
+                'from_station_telecode': from_station,
+                'to_station_telecode': to_station,
+                'depart_date': train_date
+            }
+
+            async with session.get(url, params=params, timeout=10) as response:
+                result = await response.json()
+                if result.get('status') and result.get('data', {}).get('data'):
+                    stops = []
+                    station_list = result['data']['data']
+                    total_stations = len(station_list)
+
+                    for i, station in enumerate(station_list):
+                        is_first = i == 0
+                        is_last = i == total_stations - 1
+                        stop = {
+                            'station_name': station.get('station_name', ''),
+                            'arrival_time': '--' if is_first else station.get('arrive_time', '--'),
+                            'departure_time': '--' if is_last else station.get('start_time', '--'),
+                            'stopover_time': '--' if is_first or is_last else station.get('stopover_time', '--')
+                        }
+                        stops.append(stop)
+                    return stops
             return []
+        except Exception as e:
+            logger.error(f"获取经停站信息失败: {str(e)}")
+            return []
+
+    async def _init_async_session(self, session: aiohttp.ClientSession):
+        """初始化异步会话"""
+        try:
+            async with session.get('https://kyfw.12306.cn/otn/leftTicket/init', timeout=10) as response:
+                await response.text()
+            logger.info("Async session initialized successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize async session: {str(e)}")
+            return False
+
+    async def _async_query_tickets(self, from_station: str, to_station: str, train_date: str,
+                                 start_time: str = None, end_time: str = None,
+                                 train_types: List[str] = None, via_station: str = None,
+                                 include_stops: bool = False) -> List[TrainInfo]:
+        """异步查询车票信息"""
+        session = None
+        retry_count = 0
+        max_retries = 3
+
+        while retry_count < max_retries:
+            try:
+                session = await self._get_async_session()
+                
+                # 初始化会话
+                if not await self._init_async_session(session):
+                    raise Exception("Failed to initialize session")
+
+                url = f'https://kyfw.12306.cn/otn/leftTicket/queryZ?leftTicketDTO.train_date={train_date}&leftTicketDTO.from_station={from_station}&leftTicketDTO.to_station={to_station}&purpose_codes=ADULT'
+                
+                async with session.get(url, timeout=10) as response:
+                    # 检查响应类型
+                    content_type = response.headers.get('Content-Type', '')
+                    if 'application/json' not in content_type.lower():
+                        logger.warning(f"Unexpected content type: {content_type}")
+                        # 关闭当前会话并重试
+                        await session.close()
+                        self.async_session = None
+                        retry_count += 1
+                        if retry_count < max_retries:
+                            logger.info(f"Retrying query (attempt {retry_count + 1})")
+                            await asyncio.sleep(1)  # 等待1秒后重试
+                            continue
+                        else:
+                            raise Exception("Max retries reached")
+
+                    data = await response.json()
+                    if 'data' not in data or 'result' not in data['data']:
+                        return []
+
+                    # 解析基本车次信息
+                    trains = []
+                    stop_tasks = []
+                    
+                    for train_str in data['data']['result']:
+                        try:
+                            train_info = self._parse_train_info(train_str)
+                            if not train_info:
+                                continue
+
+                            # 应用过滤条件
+                            if not self._apply_filters(train_info, start_time, end_time, train_types):
+                                continue
+
+                            trains.append(train_info)
+                            
+                            # 如果需要经停站信息，创建异步任务
+                            if include_stops or via_station:
+                                task = self._async_get_train_stops(
+                                    session,
+                                    train_info.train_no,
+                                    from_station,
+                                    to_station,
+                                    train_date
+                                )
+                                stop_tasks.append((train_info, task))
+                        except Exception as e:
+                            logger.error(f"解析车次信息失败: {str(e)}")
+                            continue
+
+                    # 并行获取所有经停站信息
+                    if stop_tasks:
+                        results = await asyncio.gather(*(task for _, task in stop_tasks), return_exceptions=True)
+                        for (train_info, _), stops in zip(stop_tasks, results):
+                            if isinstance(stops, Exception):
+                                logger.error(f"获取经停站信息失败: {str(stops)}")
+                                continue
+                            if via_station and not any(stop['station_name'] == via_station for stop in stops):
+                                trains.remove(train_info)
+                                continue
+                            if include_stops:
+                                train_info.stops = [TrainStop(
+                                    station_name=stop['station_name'],
+                                    arrival_time=stop['arrival_time'],
+                                    departure_time=stop['departure_time'],
+                                    stopover_time=stop['stopover_time']
+                                ) for stop in stops]
+
+                    return trains
+
+            except Exception as e:
+                logger.error(f"查询车票失败: {str(e)}")
+                retry_count += 1
+                if retry_count < max_retries:
+                    logger.info(f"Retrying query (attempt {retry_count + 1})")
+                    await asyncio.sleep(1)  # 等待1秒后重试
+                    if session and not session.closed:
+                        await session.close()
+                        self.async_session = None
+                else:
+                    return []
+            finally:
+                if session and not session.closed:
+                    await session.close()
+                    self.async_session = None
+
+    def _apply_filters(self, train_info: TrainInfo, start_time: str, end_time: str, train_types: List[str]) -> bool:
+        """应用过滤条件"""
+        # 时间范围过滤
+        departure_time = train_info.from_station.departure_time
+        if start_time and departure_time < start_time:
+            return False
+        if end_time and departure_time > end_time:
+            return False
+        
+        # 车型过滤
+        if train_types:
+            train_first_letter = train_info.train_code[0].upper()
+            if train_first_letter not in [t.upper() for t in train_types]:
+                return False
+        
+        return True
+
+    def query_tickets(self, from_station: str, to_station: str, train_date: str,
+                     start_time: str = None, end_time: str = None,
+                     train_types: List[str] = None, via_station: str = None,
+                     include_stops: bool = False) -> List[TrainInfo]:
+        """同步查询接口，内部使用异步实现"""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(
+                self._async_query_tickets(
+                    from_station, to_station, train_date,
+                    start_time, end_time, train_types,
+                    via_station, include_stops
+                )
+            )
+        finally:
+            loop.close()
 
     def _parse_train_info(self, train_str: str) -> Optional[TrainInfo]:
         try:
@@ -394,3 +557,20 @@ class TrainService:
         except Exception as e:
             logger.error(f"Failed to search stations: {str(e)}")
             return [] 
+
+    def __del__(self):
+        """析构函数，确保资源被正确释放"""
+        if self.conn:
+            self.conn.close()
+        if hasattr(self, 'session'):
+            self.session.close()
+        
+        # 如果异步会话还存在，创建一个新的事件循环来关闭它
+        if hasattr(self, 'async_session') and self.async_session and not self.async_session.closed:
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(self.async_session.close())
+                loop.close()
+            except Exception:
+                pass 

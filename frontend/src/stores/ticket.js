@@ -96,30 +96,11 @@ export const useTicketStore = defineStore('ticket', () => {
         train_types: searchForm.trainTypes,
         start_time: searchForm.startTime,
         end_time: searchForm.endTime,
-        via_station: searchForm.viaStation || undefined
+        via_station: searchForm.viaStation || undefined,
+        include_stops: true
       })
 
-      // 如果指定了经停站，需要验证每个车次是否经过该站
-      if (searchForm.viaStation) {
-        const viaStationPromises = response.data.map(async (train) => {
-          try {
-            const stopsResponse = await axios.get(
-              `${API_BASE_URL}/trains/${train.train_code}/stops?train_date=${dayjs(searchForm.trainDate).format('YYYY-MM-DD')}`
-            )
-            // 检查经停站是否在该车次的停靠站列表中
-            return stopsResponse.data.some(stop => stop.station_name === searchForm.viaStation)
-          } catch (error) {
-            console.error(`Error checking stops for train ${train.train_code}:`, error)
-            return false
-          }
-        })
-
-        const viaStationResults = await Promise.all(viaStationPromises)
-        tickets.value = response.data.filter((_, index) => viaStationResults[index])
-      } else {
-        tickets.value = response.data
-      }
-
+      tickets.value = response.data
       if (tickets.value.length === 0) {
         ElMessage.info('未找到符合条件的车次')
       }
@@ -147,6 +128,13 @@ export const useTicketStore = defineStore('ticket', () => {
 
   // 查看经停站信息
   async function showTrainStops(trainCode) {
+    const train = tickets.value.find(t => t.train_code === trainCode)
+    if (train && train.stops) {
+      trainStops.value = train.stops
+      stopsDialogVisible.value = true
+      return
+    }
+
     loadingStops.value[trainCode] = true
     try {
       const currentDate = dayjs(searchForm.trainDate).format('YYYY-MM-DD')

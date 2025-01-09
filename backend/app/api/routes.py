@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict
 from ..schemas.train import TicketQuery, TrainInfo, TrainStop
 from ..services.train_service import TrainService
+from fastapi.concurrency import run_in_threadpool
 
 router = APIRouter()
 train_service = TrainService()
@@ -10,8 +11,8 @@ train_service = TrainService()
 async def query_tickets(query: TicketQuery):
     try:
         # Get station codes
-        from_code = train_service.get_station_code(query.from_station)
-        to_code = train_service.get_station_code(query.to_station)
+        from_code = await run_in_threadpool(train_service.get_station_code, query.from_station)
+        to_code = await run_in_threadpool(train_service.get_station_code, query.to_station)
         
         if not from_code or not to_code:
             raise HTTPException(
@@ -23,15 +24,16 @@ async def query_tickets(query: TicketQuery):
         start_time = query.start_time.strftime("%H:%M") if query.start_time else None
         end_time = query.end_time.strftime("%H:%M") if query.end_time else None
 
-        # Query tickets
-        trains = train_service.query_tickets(
+        # Query tickets using async method directly
+        trains = await train_service._async_query_tickets(
             from_code,
             to_code,
             query.train_date,
             start_time=start_time,
             end_time=end_time,
             train_types=query.train_types,
-            via_station=query.via_station
+            via_station=query.via_station,
+            include_stops=query.include_stops
         )
 
         if not trains:
@@ -49,7 +51,7 @@ async def query_tickets(query: TicketQuery):
 async def search_stations(station_name: str):
     """搜索站点，支持模糊匹配"""
     try:
-        stations = train_service.search_stations(station_name)
+        stations = await run_in_threadpool(train_service.search_stations, station_name)
         return stations
     except Exception as e:
         raise HTTPException(
@@ -62,7 +64,7 @@ async def get_train_stops(train_code: str, train_date: str = None):
     """获取列车经停站信息"""
     try:
         # 从文件中读取经停站信息
-        stops = train_service.get_train_stops_from_file(train_code, train_date)
+        stops = await run_in_threadpool(train_service.get_train_stops_from_file, train_code, train_date)
         if not stops:
             raise HTTPException(
                 status_code=404,

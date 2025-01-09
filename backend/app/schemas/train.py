@@ -17,6 +17,7 @@ class TrainInfo(BaseModel):
     duration: str
     seats: Dict[str, str]
     prices: Dict[str, float]
+    stops: Optional[List[TrainStop]] = None
 
 class TicketQuery(BaseModel):
     from_station: str
@@ -26,4 +27,5 @@ class TicketQuery(BaseModel):
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     train_types: Optional[List[str]] = None
-    via_station: Optional[str] = None  # 新增：经停站点参数 
+    via_station: Optional[str] = None
+    include_stops: Optional[bool] = False 
