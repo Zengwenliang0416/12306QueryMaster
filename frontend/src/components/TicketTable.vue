@@ -103,30 +103,113 @@ const onShowStops = (trainCode) => {
 
 <style scoped>
 .text-gray {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 12px;
 }
 
 :deep(.el-table) {
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   margin-bottom: 20px;
+  transition: all 0.3s;
+  border: 1px solid var(--el-border-color-light);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+:deep(.el-table:hover) {
+  box-shadow: var(--el-box-shadow);
+  transform: translateY(-2px);
 }
 
 :deep(.el-table th) {
-  background-color: #f5f7fa !important;
+  background-color: var(--el-bg-color-overlay) !important;
   height: 50px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--el-text-color-primary) !important;
+  border-bottom: 1px solid var(--el-border-color-light);
 }
 
 :deep(.el-table td) {
-  padding: 8px 0;
+  padding: 12px 0;
+  transition: all 0.3s;
 }
 
-:deep(.el-button--small) {
-  padding: 6px 12px;
+:deep(.el-table tr:hover td) {
+  background-color: var(--el-bg-color-overlay) !important;
 }
 
 :deep(.el-table .cell) {
   white-space: nowrap;
+  line-height: 1.5;
+}
+
+:deep(.el-button--small) {
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+  border-radius: 6px;
+}
+
+:deep(.el-button--small:not(.is-disabled):hover) {
+  transform: translateY(-2px);
+}
+
+:deep(.el-empty) {
+  padding: 40px 0;
+}
+
+:deep(.el-empty__description) {
+  margin-top: 16px;
+  color: var(--el-text-color-secondary);
+}
+
+:deep(.el-empty__image) {
+  opacity: 0.8;
+}
+
+/* 暗黑模式适配 */
+:global(.dark) :deep(.el-table) {
+  background-color: var(--el-bg-color);
+  border-color: var(--el-border-color-darker);
+}
+
+:global(.dark) :deep(.el-table th) {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border-bottom-color: var(--el-border-color-darker);
+}
+
+:global(.dark) :deep(.el-table td) {
+  border-bottom-color: var(--el-border-color-darker);
+}
+
+:global(.dark) :deep(.el-table tr:hover td) {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+:global(.dark) :deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  :deep(.el-table th) {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  :deep(.el-table td) {
+    padding: 8px;
+  }
+
+  :deep(.el-button--small) {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .text-gray {
+    font-size: 11px;
+  }
 }
 </style> 

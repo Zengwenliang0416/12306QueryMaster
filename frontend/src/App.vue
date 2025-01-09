@@ -66,24 +66,36 @@ onMounted(() => {
   justify-content: space-between;
   background: var(--el-bg-color-overlay);
   margin-bottom: 20px;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: var(--el-box-shadow-light);
   transition: all 0.3s;
-  padding: 0 20px;
-  height: 60px;
+  padding: 0 24px;
+  height: 70px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--el-border-color-light);
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 h1 {
   color: var(--el-color-primary);
   margin: 0;
   font-size: 24px;
+  font-weight: 600;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+h1::before {
+  content: "🚂";
+  font-size: 28px;
 }
 
 /* 暗黑模式适配 */
@@ -96,8 +108,9 @@ html.dark .container {
 }
 
 html.dark .el-header {
-  background: var(--el-bg-color);
+  background: rgba(0, 0, 0, 0.2);
   box-shadow: var(--el-box-shadow);
+  border-color: var(--el-border-color-darker);
 }
 
 html.dark h1 {
@@ -106,6 +119,61 @@ html.dark h1 {
 
 /* 过渡动画 */
 * {
-  transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .main-container {
+    padding: 12px;
+  }
+
+  .el-header {
+    padding: 0 16px;
+    height: 60px;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  h1::before {
+    font-size: 24px;
+  }
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--el-bg-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--el-border-color);
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--el-text-color-secondary);
+}
+
+/* 暗黑模式滚动条 */
+html.dark ::-webkit-scrollbar-track {
+  background: var(--el-bg-color-darker);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: var(--el-border-color-darker);
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--el-text-color-secondary);
 }
 </style>

@@ -122,21 +122,45 @@ const disablePastDates = (date) => {
 <style scoped>
 .search-form {
   background: var(--el-bg-color-overlay);
-  padding: 20px;
-  border-radius: 8px;
+  padding: 24px;
+  border-radius: 12px;
   box-shadow: var(--el-box-shadow-light);
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   transition: all 0.3s;
+  border: 1px solid var(--el-border-color-light);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.search-form:hover {
+  box-shadow: var(--el-box-shadow);
+  transform: translateY(-2px);
 }
 
 .search-input {
   width: 100%;
 }
 
+:deep(.el-form-item) {
+  margin-bottom: 24px;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  padding-right: 12px;
+}
+
 :deep(.el-input__wrapper) {
   background-color: var(--el-bg-color-overlay);
   border-color: var(--el-border-color);
   box-shadow: 0 0 0 1px var(--el-border-color) inset;
+  border-radius: 8px;
+  padding: 4px 12px;
+  transition: all 0.3s;
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--el-border-color-hover) inset;
 }
 
 :deep(.el-input__wrapper.is-focus) {
@@ -145,16 +169,30 @@ const disablePastDates = (date) => {
 
 :deep(.el-input__inner) {
   color: var(--el-text-color-primary);
+  height: 36px;
+  line-height: 36px;
 }
 
 :deep(.el-input__inner::placeholder) {
   color: var(--el-text-color-placeholder);
 }
 
+:deep(.el-button) {
+  padding: 12px 24px;
+  font-weight: 500;
+  transition: all 0.3s;
+  border-radius: 8px;
+}
+
+:deep(.el-button:not(.is-disabled):hover) {
+  transform: translateY(-2px);
+}
+
 /* 暗黑模式适配 */
 :global(.dark) .search-form {
-  background: var(--el-bg-color);
+  background: rgba(0, 0, 0, 0.2);
   box-shadow: var(--el-box-shadow);
+  border-color: var(--el-border-color-darker);
 }
 
 :global(.dark) :deep(.el-form-item__label) {
@@ -177,14 +215,20 @@ const disablePastDates = (date) => {
 :global(.dark-suggestions) {
   background-color: var(--el-bg-color) !important;
   border-color: var(--el-border-color) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--el-box-shadow) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 :global(.dark-suggestions .el-autocomplete-suggestion__wrap) {
   background-color: var(--el-bg-color) !important;
+  border-radius: 8px !important;
 }
 
 :global(.dark-suggestions .el-autocomplete-suggestion__list li) {
   color: var(--el-text-color-primary) !important;
+  padding: 8px 12px !important;
 }
 
 :global(.dark-suggestions .el-autocomplete-suggestion__list li:hover) {
@@ -195,11 +239,16 @@ const disablePastDates = (date) => {
 :deep(.el-picker__popper) {
   background-color: var(--el-bg-color) !important;
   border-color: var(--el-border-color) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--el-box-shadow) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 :deep(.el-picker-panel) {
   background-color: var(--el-bg-color) !important;
   border-color: var(--el-border-color) !important;
+  border-radius: 8px !important;
 }
 
 :deep(.el-picker-panel__icon-btn) {
@@ -208,14 +257,43 @@ const disablePastDates = (date) => {
 
 :deep(.el-date-picker__header-label) {
   color: var(--el-text-color-primary) !important;
+  font-weight: 500 !important;
 }
 
 :deep(.el-date-table th) {
   color: var(--el-text-color-regular) !important;
+  font-weight: 500 !important;
 }
 
 :deep(.el-date-table td.next-month .el-date-table-cell__text,
       .el-date-table td.prev-month .el-date-table-cell__text) {
   color: var(--el-text-color-placeholder) !important;
+}
+
+:deep(.el-date-table td.today .el-date-table-cell__text) {
+  color: var(--el-color-primary) !important;
+  font-weight: bold !important;
+}
+
+:deep(.el-date-table td.current:not(.disabled) .el-date-table-cell__text) {
+  background-color: var(--el-color-primary) !important;
+  color: white !important;
+  font-weight: bold !important;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .search-form {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 16px;
+  }
+
+  :deep(.el-button) {
+    padding: 10px 20px;
+  }
 }
 </style> 
