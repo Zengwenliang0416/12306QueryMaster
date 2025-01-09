@@ -1,47 +1,53 @@
-# 12306 列车查询系统前端
+# 12306 列车查询前端
 
-这是12306列车查询系统的Vue 3前端项目，使用Element Plus组件库构建。
+这是一个基于 Vue 3 + Vite 实现的12306列车查询前端界面。
 
-## 功能特点
+## 环境要求
 
-- ✨ 车票查询界面
-- 🚉 站点自动补全
-- 🕒 时间段筛选
-- 🚄 车型筛选
-- 📍 经停站查询
-- 📱 响应式设计
-
-## 技术栈
-
-- Vue 3
-- Vite
-- Element Plus
-- Axios
-- Day.js
-
-## 开发环境要求
-
-- Node.js 16.0 或更高版本
-- npm 7.0 或更高版本
+- Node.js 16.x 或更高版本
+- npm 或 yarn 包管理器
 
 ## 快速开始
 
-1. 安装依赖：
+### 1. 安装依赖
 
 ```bash
 npm install
+# 或
+yarn install
 ```
 
-2. 启动开发服务器：
+### 2. 环境配置
+
+项目使用以下环境配置文件：
+
+- `.env`: 默认环境配置
+- `.env.development`: 开发环境配置
+- `.env.production`: 生产环境配置
+
+可用的环境变量：
+
+- `VITE_API_BASE_URL`: API 请求的基础路径
+- `VITE_BACKEND_HOST`: 后端服务器主机名
+- `VITE_BACKEND_PORT`: 后端服务器端口
+- `VITE_BACKEND_URL`: 后端服务器完整地址
+
+开发环境下，API 请求会通过 Vite 的代理功能转发到后端服务器。生产环境通常使用相对路径，由反向代理服务器（如 Nginx）处理请求转发。
+
+### 3. 开发服务器
 
 ```bash
 npm run dev
+# 或
+yarn dev
 ```
 
-3. 构建生产版本：
+### 4. 构建生产版本
 
 ```bash
 npm run build
+# 或
+yarn build
 ```
 
 ## 项目结构
@@ -49,23 +55,31 @@ npm run build
 ```
 frontend/
 ├── src/
-│   ├── assets/        # 静态资源
-│   ├── components/    # Vue组件
+│   ├── components/     # 组件目录
+│   ├── stores/        # Pinia 状态管理
 │   ├── App.vue        # 根组件
-│   ├── main.js        # 入口文件
-│   └── style.css      # 全局样式
-├── public/            # 公共资源
-├── index.html         # HTML模板
-├── package.json       # 项目配置
-└── vite.config.js     # Vite配置
+│   └── main.js        # 入口文件
+├── .env               # 默认环境配置
+├── .env.development   # 开发环境配置
+├── .env.production    # 生产环境配置
+└── vite.config.js     # Vite 配置文件
 ```
 
-## 开发指南
+## 功能特点
 
-1. 本地开发时，确保后端服务器运行在 `http://localhost:8001`
-2. API请求都在 `src/App.vue` 中处理
-3. 使用Element Plus组件进行界面开发
-4. 使用 `npm run dev` 启动开发服务器
+- 支持车次查询
+- 支持车型筛选
+- 支持时间段筛选
+- 支持经停站查询
+- 自动保存查询条件
+- 响应式设计
+
+## 开发说明
+
+- 使用 Vue 3 Composition API
+- 使用 Element Plus UI 组件库
+- 使用 Pinia 进行状态管理
+- 使用 Vite 作为构建工具
 
 ## 生产部署
 

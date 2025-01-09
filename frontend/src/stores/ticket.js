@@ -4,7 +4,7 @@ import axios from 'axios'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 
-const API_BASE_URL = 'http://localhost:8001/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 export const useTicketStore = defineStore('ticket', () => {
   // 状态
@@ -100,7 +100,27 @@ export const useTicketStore = defineStore('ticket', () => {
         include_stops: true
       })
 
-      tickets.value = response.data
+      console.log('API Response:', response.data)
+      console.log('Response type:', typeof response.data)
+      console.log('Is array:', Array.isArray(response.data))
+      
+      if (Array.isArray(response.data)) {
+        tickets.value = response.data.map(ticket => ({
+          ...ticket,
+          seats: Object.fromEntries(
+            Object.entries(ticket.seats).map(([key, value]) => [
+              key,
+              value === '有' ? '有票' : value === '无' ? '无票' : value
+            ])
+          )
+        }))
+      } else {
+        tickets.value = []
+      }
+      
+      console.log('Tickets after processing:', tickets.value)
+      console.log('Tickets length:', tickets.value.length)
+      
       if (tickets.value.length === 0) {
         ElMessage.info('未找到符合条件的车次')
       }
