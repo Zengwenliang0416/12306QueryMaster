@@ -1,5 +1,7 @@
 # 12306 列车查询系统
 
+![Auto Approve](https://github.com/Zengwenliang0416/12306QueryMaster/actions/workflows/auto-approve.yml/badge.svg)
+
 一个基于FastAPI和Vue 3的现代化列车查询系统，提供实时的列车票务查询服务。
 
 ## 功能特点
