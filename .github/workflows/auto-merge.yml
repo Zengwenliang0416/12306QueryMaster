@@ -8,8 +8,7 @@ on:
 
 # 自动合并工作流
 # 1. 检查PR创建者是否为仓库所有者
-# 2. 自动批准PR
-# 3. 启用自动合并（squash方式）
+# 2. 启用自动合并（squash方式）
 
 jobs:
   auto-merge:
@@ -19,12 +18,6 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Approve Pull Request
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
       - name: Enable auto-merge
         run: gh pr merge --auto --squash "$PR_URL"
         env:
