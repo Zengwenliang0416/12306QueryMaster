@@ -6,6 +6,11 @@ on:
       - synchronize
       - reopened
 
+# 自动合并工作流
+# 1. 检查PR创建者是否为仓库所有者
+# 2. 自动批准PR
+# 3. 启用自动合并（squash方式）
+
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
